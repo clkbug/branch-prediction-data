@@ -9,7 +9,7 @@ Gshare分岐予測機のデータを確認する。
 
 ```{r}
 library(tidyverse)
-library(plotly)
+# library(plotly)
 
 data <- read_tsv("gshare.tsv") %>%
   mutate(
@@ -46,7 +46,8 @@ p <- data %>%
   theme_bw() +
   geom_boxplot() +
   labs(x = "履歴長［ビット］", y = "分岐予測ヒット率")
-ggplotly(p)
+plot(p)
+# ggplotly(p)
 ```
 
 ### トレースのカテゴリとヒット率
@@ -87,7 +88,8 @@ p <-
     color = "black"
   ) +
   labs(x = "履歴長［ビット］", y = "分岐予測ヒット率")
-ggplotly(p)
+plot(p)
+# ggplotly(p)
 ```
 
 
@@ -110,7 +112,8 @@ p <- data %>%
   geom_tile() +
   scale_fill_gradient(low = "#a1024a", high = "#7ee787") +
   labs(x = "履歴長［ビット］", y = "log(PHTエントリ数)")
-ggplotly(p)
+plot(p)
+# ggplotly(p)
 ```
 
 グラフの表示を変える。
@@ -132,7 +135,8 @@ p <- data %>%
   geom_point() +
   geom_line() +
   labs(x = "履歴長［ビット］", y = "予測ヒット率")
-ggplotly(p)
+plot(p)
+# ggplotly(p)
 ```
 
 

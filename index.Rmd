@@ -13,7 +13,7 @@ title: "データの概要"
 
 ```{r}
 library(tidyverse)
-library(plotly)
+# library(plotly)
 data <- read_tsv("gshare.tsv") %>%
   mutate(
     trace = trace %>% as_factor(),
@@ -82,7 +82,8 @@ p <- data %>%
   geom_violin() +
   geom_jitter(height = 0) +
   scale_y_continuous(limits = c(0, NA))
-ggplotly(p)
+plot(p)
+# ggplotly(p)
 
 p <- data %>%
   ggplot(
@@ -95,7 +96,8 @@ p <- data %>%
   geom_boxplot() +
   geom_jitter(height = 0) +
   scale_y_continuous(limits = c(0, NA))
-ggplotly(p)
+plot(p)
+# ggplotly(p)
 ```
 
 LONGとSHORTで傾向の違いがあって、SHORTのほうが条件分岐の割合が高い。

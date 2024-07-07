@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: Setup
         run: |
-          sudo apt-get install r-cran-tidyverse r-cran-plotly r-cran-rmarkdown make -y
+          sudo apt-get install r-cran-tidyverse r-cran-rmarkdown make -y # r-cran-plotly
       - name: Checkout
         uses: actions/checkout@v4
       - name: Make
