@@ -1,0 +1,8 @@
+name: "branch prediction data"
+navbar:
+  title: "分岐予測のデータ"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "About"
+      href: about.html
