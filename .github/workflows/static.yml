@@ -32,7 +32,7 @@ jobs:
       - name:
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: r-cran-tidyverse r-cran-rmarkdown make fonts-noto-cjk -y # r-cran-plotly
+          packages: r-cran-tidyverse r-cran-rmarkdown make fonts-noto-cjk # r-cran-plotly
           version: 1.0
       - name: Checkout
         uses: actions/checkout@v4
