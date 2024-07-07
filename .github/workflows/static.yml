@@ -32,11 +32,11 @@ jobs:
       - name: Setup
         run: |
           sudo apt install r-cran-tidyverse make -y
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Make
         run: |
           make
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
