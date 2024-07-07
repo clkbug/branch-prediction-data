@@ -1,0 +1,146 @@
+---
+title: "Gshare分岐予測器"
+---
+
+Gshare分岐予測機のデータを確認する。
+
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(plotly)
+
+data <- read_tsv("gshare.tsv") %>%
+  mutate(
+    trace = trace %>% as_factor(),
+    trace_category = trace_category %>% as_factor()
+  )
+```
+
+
+## Gshareのパラメータ
+
+ここでは次の2つのパラメータを変化させた。
+
+* `historyLength`：履歴長
+* `logPhtSize`：PHTのサイズの対数。PHTのエントリ数は2の累乗
+
+## 履歴長・PHTの大きさと分岐予測ヒット率
+
+### 箱ひげ図
+
+PHTのエントリ数のインデックス長と履歴長が一致するようなパラメータで分岐予測ヒット率の変化を調べる。
+
+```{r}
+p <- data %>%
+  filter(
+    historyLength == logPhtSize
+  ) %>%
+  ggplot(
+    mapping = aes(
+      x = historyLength %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  labs(x = "履歴長［ビット］", y = "分岐予測ヒット率")
+ggplotly(p)
+```
+
+### トレースのカテゴリとヒット率
+
+
+```{r}
+d <- data %>% filter(historyLength == logPhtSize)
+d1 <- d %>%
+  group_by(historyLength, trace_category) %>%
+  summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR)) %>%
+  ungroup()
+d2 <- d %>%
+  group_by(historyLength) %>%
+  summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR)) %>%
+  ungroup()
+p <- 
+  ggplot(
+    data = d1,
+    mapping = aes(
+      x = historyLength,
+      y = bpred_hit,
+      color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_line() +
+  geom_point() +
+  geom_line(
+    data = d2,
+    mapping = aes(
+      x = historyLength,
+      y = bpred_hit,
+      color = "mean",
+      # shape = "mean",
+    ),
+    linetype = "dashed",
+    color = "black"
+  ) +
+  labs(x = "履歴長［ビット］", y = "分岐予測ヒット率")
+ggplotly(p)
+```
+
+
+## テーブルインデックスよりも履歴長を短く設定する
+
+```{r}
+p <- data %>%
+  filter(historyLength <= logPhtSize) %>%
+  group_by(historyLength, logPhtSize) %>%
+  summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR)) %>%
+  ungroup() %>%
+  ggplot(
+    mapping = aes(
+      x = historyLength,
+      y = logPhtSize,
+      fill = bpred_hit
+    )
+  ) +
+  theme_bw() +
+  geom_tile() +
+  scale_fill_gradient(low = "#a1024a", high = "#7ee787") +
+  labs(x = "履歴長［ビット］", y = "log(PHTエントリ数)")
+ggplotly(p)
+```
+
+グラフの表示を変える。
+
+```{r}
+p <- data %>%
+  filter(historyLength <= logPhtSize & (logPhtSize <= 12 | between(logPhtSize, 16, 19))) %>%
+  group_by(historyLength, logPhtSize) %>%
+  summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR)) %>%
+  ungroup() %>%
+  ggplot(
+    mapping = aes(
+      x = historyLength,
+      y = bpred_hit,
+      color = logPhtSize %>% as_factor(),
+    )
+  ) +
+  theme_bw() +
+  geom_point() +
+  geom_line() +
+  labs(x = "履歴長［ビット］", y = "予測ヒット率")
+ggplotly(p)
+```
+
+
+
+履歴長が短ければ学習に要する時間は短くて済むはずであるが、2048エントリ以上あるPHTがあるならば履歴長は長いほうがよい。
+1024エントリしかない場合には履歴長を長くしてもほとんどヒット率向上には寄与しない。
+
+
+
+
+

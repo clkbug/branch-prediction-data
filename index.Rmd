@@ -1,9 +1,104 @@
 ---
-title: "My Website"
+title: "データの概要"
 ---
 
-Hello, Website!
+参考
 
-For more information about simple R Markdown websites, please read the documentation at https://bookdown.org/yihui/rmarkdown/rmarkdown-site.html.
+* https://jilp.org/cbp2016/framework.html
+* FPGA 開発日記
+  * https://msyksphinz.hatenablog.com/entry/2022/07/23/040000
+  * https://msyksphinz.hatenablog.com/entry/2022/07/26/040000
 
-Please also note that simple R Markdown sites are _not_ based on **blogdown**. They are probably good for websites with only a few Rmd documents. For larger-scale and more sophisticated websites (such as blogs), you may want to use **blogdown** instead: https://github.com/rstudio/blogdown.
+## Setup
+
+```{r}
+library(tidyverse)
+library(plotly)
+data <- read_tsv("gshare.tsv") %>%
+  mutate(
+    trace = trace %>% as_factor(),
+    trace_category = trace_category %>% as_factor()
+  ) %>%
+  filter(
+    historyLength == 10 & logPhtSize == 10
+  )
+```
+
+## トレースの数
+
+```{r}
+data$trace_category %>% summary
+```
+
+ただし、上記のトレースは、公式に提供されたトレースから次の2つを除いている。
+
+* `LONG_MOBILE-10.bt9.trace.gz`
+* `SHORT_MOBILE-22.bt9.trace.gz`
+
+これら2つのトレースは実行に時間がかかったためである。
+
+## 命令数
+
+```{r}
+data %>%
+  ggplot(mapping = aes(
+    x = log10(NUM_INSTRUCTIONS),
+    y = NUM_BR / NUM_INSTRUCTIONS,
+    color = trace_category,
+    shape = trace_category,
+  )) +
+  theme_bw() +
+  geom_point() +
+  scale_y_continuous(limits = c(0, NA))
+```
+
+ばらつきはあるが、SHORTなトレースは100M命令、LONGなTRACEは1G命令程度の長さである。
+
+
+## 分岐予測命令の種類の内訳
+
+### `NUM_BR == NUM_UNCOND_BR + NUM_CONDITINONAL_BR`?
+
+```{r}
+data %>% with(NUM_BR == NUM_UNCOND_BR + NUM_CONDITIONAL_BR) %>% summary
+```
+
+すべての分岐命令は条件分岐と無条件分岐のどちらかに分類されている。
+
+### 条件分岐と無条件分岐の数
+
+箱ひげ図とバイオリン図を示す。
+
+```{r}
+p <- data %>%
+  ggplot(
+    mapping = aes(
+      x = trace_category,
+      y = NUM_CONDITIONAL_BR / NUM_BR,
+    )
+  ) +
+  theme_bw() +
+  # geom_boxplot() +
+  geom_violin() +
+  geom_jitter(height = 0) +
+  scale_y_continuous(limits = c(0, NA))
+ggplotly(p)
+
+p <- data %>%
+  ggplot(
+    mapping = aes(
+      x = trace_category,
+      y = NUM_CONDITIONAL_BR / NUM_BR,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  geom_jitter(height = 0) +
+  scale_y_continuous(limits = c(0, NA))
+ggplotly(p)
+```
+
+LONGとSHORTで傾向の違いがあって、SHORTのほうが条件分岐の割合が高い。
+中央値で見るとSHORTはMOBILE 84%, SERVER 70%であるのに対して、LONGは94%、91%。
+
+
