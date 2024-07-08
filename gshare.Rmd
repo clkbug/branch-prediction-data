@@ -214,6 +214,24 @@ p <- data %>%
   labs(x = "履歴長［ビット］", y = "予測ヒット率")
 plot(p)
 # ggplotly(p)
+p <- data %>%
+  filter(historyLength <= logPhtSize & (logPhtSize <= 12 | between(logPhtSize, 16, 19))) %>%
+  group_by(historyLength, logPhtSize) %>%
+  summarise(mpki = mean(MISPRED_PER_1K_INST)) %>%
+  ungroup() %>%
+  ggplot(
+    mapping = aes(
+      x = historyLength,
+      y = mpki,
+      color = logPhtSize %>% as_factor(),
+    )
+  ) +
+  theme_bw() +
+  geom_point() +
+  geom_line() +
+  labs(x = "履歴長［ビット］", y = "MPKI")
+plot(p)
+# ggplotly(p)
 ```
 
 
