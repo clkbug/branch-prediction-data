@@ -1,0 +1,239 @@
+---
+title: "Hashed Perceptron分岐予測器"
+---
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+ChampSim https://github.com/ChampSim/ChampSim に Hashed Perceptron の実装が含まれている。
+https://github.com/ChampSim/ChampSim/blob/master/branch/hashed_perceptron/hashed_perceptron.cc
+
+これをBPCKに移植した。
+
+## Setup
+
+```{r}
+data <- read_tsv("./hashedperceptron.tsv")
+```
+
+
+## SPEED
+
+学習の速度を決めるパラメータspeedの影響をまず見る。
+
+```{r}
+p <- data %>%
+  filter(tableCount == 16 & logTableSize == 12 & weightBit == 8) %>%
+  ggplot(
+    mapping = aes(
+      x = speed %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      color = trace_category,
+      shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "speed", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+```
+
+デフォルトが18だったが、より短く設定したほうが性能は良くなりそう。
+
+```{r}
+p <- data %>%
+  filter(tableCount == 16 & logTableSize == 12 & weightBit == 8) %>%
+  ggplot(
+    mapping = aes(
+      x = speed %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      color = trace_category,
+      shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "speed", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+## テーブルの数
+
+
+```{r}
+p <- data %>%
+  filter(speed == 18 & logTableSize == 12 & weightBit == 8) %>%
+  ggplot(
+    mapping = aes(
+      x = tableCount %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "テーブルの数", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+p <- data %>%
+  filter(speed == 18 & logTableSize == 12 & weightBit == 8) %>%
+  ggplot(
+    mapping = aes(
+      x = tableCount %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "テーブルの数", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+今回のトレースだとテーブルは8が一番性能が良い。
+使っている履歴長が、0,3,4,6,8,10,14,19,26,36,49,67,91,125,170,232なので、テーブル数8で最大19ビットの履歴長。
+
+
+## テーブルサイズ
+
+
+```{r}
+p <- data %>%
+  filter(speed == 18 & tableCount == 16 & weightBit == 8) %>%
+  ggplot(
+    mapping = aes(
+      x = logTableSize %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "log（テーブルエントリ数）", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+
+p <- data %>%
+  filter(speed == 18 & tableCount == 16 & weightBit == 8) %>%
+  ggplot(
+    mapping = aes(
+      x = logTableSize %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "log（テーブルエントリ数）", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+テーブルエントリ数は4Kiエントリくらいまでは増やせるなら増やしたほうがよさそう。
+
+## 重み
+
+
+```{r}
+p <- data %>%
+  filter(speed == 18 & tableCount == 16 & logTableSize == 12) %>%
+  ggplot(
+    mapping = aes(
+      x = weightBit %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "重みビット長", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+
+p <- data %>%
+  filter(speed == 18 & tableCount == 16 & logTableSize == 12) %>%
+  ggplot(
+    mapping = aes(
+      x = weightBit %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "重みビット長", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+重みビットは削っても問題はあまりなさそう。
+今回のデータだとむしろ短いほうがよい。
+
+## 資源量
+
+
+```{r}
+p <- data %>%
+  filter(speed == 18) %>%
+  group_by(speed, weightBit, tableCount, logTableSize) %>%
+  summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS/NUM_BR)) %>%
+  mutate(ram_capacity = weightBit * tableCount * 2**logTableSize) %>%
+  ggplot(
+    mapping = aes(
+      x = log2(ram_capacity),
+      y = bpred_hit,
+      color = interaction(tableCount, logTableSize),
+      shape = weightBit %>% as_factor(),
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_point() +
+  geom_line() +
+  # geom_jitter(height = 0) +
+  labs(x = "log2（RAM容量）", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+
+p <- data %>%
+  filter(speed == 18) %>%
+  group_by(speed, weightBit, tableCount, logTableSize) %>%
+  summarise(mpki = mean(MISPRED_PER_1K_INST)) %>%
+  mutate(ram_capacity = weightBit * tableCount * 2**logTableSize) %>%
+  ggplot(
+    mapping = aes(
+      x = log2(ram_capacity),
+      y = mpki,
+      color = interaction(tableCount, logTableSize),
+      shape = weightBit %>% as_factor(),
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_point() +
+  geom_line() +
+  # geom_jitter(height = 0) +
+  labs(x = "log2（RAM容量）", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+

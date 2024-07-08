@@ -6,3 +6,5 @@ navbar:
       href: index.html
     - text: "Gshare"
       href: gshare.html
+    - text: "HashedPerceptron"
+      href: hashedperceptron.html
