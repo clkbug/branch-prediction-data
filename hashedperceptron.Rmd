@@ -30,8 +30,8 @@ p <- data %>%
     mapping = aes(
       x = speed %>% as_factor,
       y = 1 - NUM_MISPREDICTIONS / NUM_BR,
-      color = trace_category,
-      shape = trace_category,
+      # color = trace_category,
+      # shape = trace_category,
     )
   ) +
   theme_bw() +
@@ -51,8 +51,8 @@ p <- data %>%
     mapping = aes(
       x = speed %>% as_factor,
       y = MISPRED_PER_1K_INST,
-      color = trace_category,
-      shape = trace_category,
+      # color = trace_category,
+      # shape = trace_category,
     )
   ) +
   theme_bw() +
@@ -62,7 +62,13 @@ p <- data %>%
 plot(p)
 # ggplotly(p)
 ```
-## テーブルの数
+
+## SPEED=18での評価
+
+ここからはデフォルトのSPEED=18での評価。
+デフォルトを中心に最初はデータを取ったので。
+
+### テーブルの数
 
 
 ```{r}
@@ -100,11 +106,11 @@ plot(p)
 # ggplotly(p)
 ```
 
-今回のトレースだとテーブルは8が一番性能が良い。
+今回のトレースだとテーブルは8か16が一番性能が良い。どちらがいいかは微妙なところ。
 使っている履歴長が、0,3,4,6,8,10,14,19,26,36,49,67,91,125,170,232なので、テーブル数8で最大19ビットの履歴長。
 
 
-## テーブルサイズ
+### テーブルサイズ
 
 
 ```{r}
@@ -145,7 +151,7 @@ plot(p)
 
 テーブルエントリ数は4Kiエントリくらいまでは増やせるなら増やしたほうがよさそう。
 
-## 重み
+### 重み
 
 
 ```{r}
@@ -187,12 +193,143 @@ plot(p)
 重みビットは削っても問題はあまりなさそう。
 今回のデータだとむしろ短いほうがよい。
 
+
+## SPEED=5での評価
+
+SPEED=5&WEIGHTBIT=6でも見てみる。
+
+### テーブルの数
+
+
+```{r}
+p <- data %>%
+  filter(speed == 5 & logTableSize == 12 & weightBit == 6) %>%
+  ggplot(
+    mapping = aes(
+      x = tableCount %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "テーブルの数", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+p <- data %>%
+  filter(speed == 5 & logTableSize == 12 & weightBit == 6) %>%
+  ggplot(
+    mapping = aes(
+      x = tableCount %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "テーブルの数", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+SPEED=18だと8/16あたりが最大だったが、これも多いほうがよさそう。
+
+
+### テーブルサイズ
+
+
+```{r}
+p <- data %>%
+  filter(speed == 5 & tableCount == 16 & weightBit == 6) %>%
+  ggplot(
+    mapping = aes(
+      x = logTableSize %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "log（テーブルエントリ数）", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+
+p <- data %>%
+  filter(speed == 5 & tableCount == 16 & weightBit == 6) %>%
+  ggplot(
+    mapping = aes(
+      x = logTableSize %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "log（テーブルエントリ数）", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+テーブルエントリ数は4Kiエントリくらいまでは増やせるなら増やしたほうがよさそう。
+
+### 重み
+
+
+```{r}
+p <- data %>%
+  filter(speed == 5 & tableCount == 16 & logTableSize == 12) %>%
+  ggplot(
+    mapping = aes(
+      x = weightBit %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "重みビット長", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+
+p <- data %>%
+  filter(speed == 5 & tableCount == 16 & logTableSize == 12) %>%
+  ggplot(
+    mapping = aes(
+      x = weightBit %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      # color = trace_category,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  # geom_jitter(height = 0) +
+  labs(x = "重みビット長", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+重みビットは4ビットくらいでもそれなりによさげ。
+
+
+
+
+
 ## 資源量
 
 
 ```{r}
 p <- data %>%
-  filter(speed == 18) %>%
+  # filter(speed == 18) %>%
   group_by(speed, weightBit, tableCount, logTableSize) %>%
   summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS/NUM_BR)) %>%
   mutate(ram_capacity = weightBit * tableCount * 2**logTableSize) %>%
@@ -200,21 +337,23 @@ p <- data %>%
     mapping = aes(
       x = log2(ram_capacity),
       y = bpred_hit,
-      color = interaction(tableCount, logTableSize),
-      shape = weightBit %>% as_factor(),
+      # color = interaction(tableCount, logTableSize),
+      color = speed,
       # shape = trace_category,
     )
   ) +
   theme_bw() +
   geom_point() +
-  geom_line() +
+  # geom_line() +
+  scale_y_continuous(limits = c(0.85, 1), breaks = 0.85 + ((0:15) / 100)) +
   # geom_jitter(height = 0) +
+  scale_color_gradient(low = "#a1024a", high = "#7ee787") +
   labs(x = "log2（RAM容量）", y = "分岐予測ヒット率")
 plot(p)
 # ggplotly(p)
 
 p <- data %>%
-  filter(speed == 18) %>%
+  # filter(speed == 18) %>%
   group_by(speed, weightBit, tableCount, logTableSize) %>%
   summarise(mpki = mean(MISPRED_PER_1K_INST)) %>%
   mutate(ram_capacity = weightBit * tableCount * 2**logTableSize) %>%
@@ -222,15 +361,16 @@ p <- data %>%
     mapping = aes(
       x = log2(ram_capacity),
       y = mpki,
-      color = interaction(tableCount, logTableSize),
-      shape = weightBit %>% as_factor(),
+      # color = interaction(tableCount, logTableSize),
+      color = speed,
       # shape = trace_category,
     )
   ) +
   theme_bw() +
   geom_point() +
-  geom_line() +
+  # geom_line() +
   # geom_jitter(height = 0) +
+  scale_color_gradient(low = "#a1024a", high = "#7ee787") +
   labs(x = "log2（RAM容量）", y = "MPKI")
 plot(p)
 # ggplotly(p)
