@@ -9,8 +9,8 @@ library(tidyverse)
 # library(plotly)
 
 data <- read_tsv("gshare.tsv") %>% mutate(ghr = "direction") %>%
-  union_all(read_tsv("gshareTh1.tsv")) %>%
-  union_all(read_tsv("gshareTh2.tsv") %>% mutate(ghr = "target history (shift 2)")) %>%
+  union_all(read_tsv("gshareTh1.tsv" %>% mutate(ghr = "target history (shift 1)"))) %>%
+  union_all(read_tsv("gshareTh2.tsv") %>% mutate(ghr = "target history (shift 2) (original?)")) %>%
   union_all(read_tsv("gshareTh2_AS0.tsv") %>% mutate(ghr = "target history (shift 2, address shift 0)")) %>%
   mutate(
     trace = trace %>% as_factor(),
