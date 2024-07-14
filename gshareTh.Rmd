@@ -1,0 +1,174 @@
+---
+title: "Gshare+TargetHistory"
+---
+
+## Setup
+
+```{r}
+library(tidyverse)
+# library(plotly)
+
+data <- read_tsv("gshare.tsv") %>% mutate(ghr = "direction") %>%
+  union_all(read_tsv("gshareTh1.tsv")) %>%
+  union_all(read_tsv("gshareTh2.tsv") %>% mutate(ghr = "target history (shift 2)")) %>%
+  union_all(read_tsv("gshareTh2_AS0.tsv") %>% mutate(ghr = "target history (shift 2, address shift 0)")) %>%
+  mutate(
+    trace = trace %>% as_factor(),
+    trace_category = trace_category %>% as_factor(),
+    ghr = ghr %>% as_factor
+  )
+```
+
+
+## Gshareのパラメータ
+
+ここでは次の2つのパラメータを変化させた。
+
+* `historyLength`：履歴長
+* `logPhtSize`：PHTのサイズの対数。PHTのエントリ数は2の累乗
+
+## 履歴長・PHTの大きさと分岐予測ヒット率
+
+### 箱ひげ図
+
+PHTのエントリ数のインデックス長と履歴長が一致するようなパラメータで分岐予測ヒット率の変化を調べる。
+
+```{r}
+p <- data %>%
+  filter(
+    historyLength == logPhtSize
+  ) %>%
+  ggplot(
+    mapping = aes(
+      x = historyLength %>% as_factor,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      color = ghr,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  labs(x = "履歴長［ビット］", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+```
+
+```{r}
+p <- data %>%
+  filter(
+    historyLength == logPhtSize
+  ) %>%
+  ggplot(
+    mapping = aes(
+      x = historyLength %>% as_factor,
+      y = MISPRED_PER_1K_INST,
+      color = ghr,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  labs(x = "履歴長［ビット］", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+### トレースのカテゴリとヒット率
+
+
+```{r}
+d <- data %>% filter(historyLength == logPhtSize)
+d1 <- d %>%
+  group_by(historyLength, trace_category, ghr) %>%
+  summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR)) %>%
+  ungroup()
+d2 <- d %>%
+  group_by(historyLength, ghr) %>%
+  summarise(bpred_hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR)) %>%
+  ungroup()
+p <- 
+  ggplot(
+    data = d1,
+    mapping = aes(
+      x = historyLength,
+      y = bpred_hit,
+      color = trace_category,
+      shape = ghr,
+      # shape = trace_category,
+    )
+  ) +
+  theme_bw() +
+  geom_line() +
+  geom_point() +
+  geom_line(
+    data = d2,
+    mapping = aes(
+      x = historyLength,
+      y = bpred_hit,
+      color = ghr,
+      group = ghr,
+      # shape = "mean",
+    ),
+    linetype = "dashed",
+    color = "black"
+  ) +
+  geom_point(
+    data = d2,
+    mapping = aes(
+      x = historyLength,
+      y = bpred_hit,
+      color = ghr,
+      group = ghr,
+      shape = ghr,
+      # shape = "mean",
+    ),
+    linetype = "dashed",
+    color = "black"
+  ) +
+  labs(x = "履歴長［ビット］", y = "分岐予測ヒット率")
+plot(p)
+# ggplotly(p)
+```
+
+## トレースのカテゴリとMPKI
+
+
+```{r}
+d <- data %>% filter(historyLength == logPhtSize)
+d1 <- d %>%
+  group_by(historyLength, trace_category, ghr) %>%
+  summarise(mpki = mean(MISPRED_PER_1K_INST)) %>%
+  ungroup()
+d2 <- d %>%
+  group_by(historyLength, ghr) %>%
+  summarise(mpki = mean(MISPRED_PER_1K_INST)) %>%
+  ungroup()
+p <- 
+  ggplot(
+    data = d1,
+    mapping = aes(
+      x = historyLength,
+      y = mpki,
+      color = trace_category,
+      shape = ghr,
+    )
+  ) +
+  theme_bw() +
+  geom_line() +
+  geom_point() +
+  geom_line(
+    data = d2,
+    mapping = aes(
+      x = historyLength,
+      y = mpki,
+      color = "mean",
+      # shape = "mean",
+    ),
+    linetype = "dashed",
+    color = "black"
+  ) +
+  labs(x = "履歴長［ビット］", y = "MPKI")
+plot(p)
+# ggplotly(p)
+```
+
+
+
