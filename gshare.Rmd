@@ -211,6 +211,7 @@ p <- data %>%
   theme_bw() +
   geom_point() +
   geom_line() +
+  scale_y_continuous(limits = c(0.85, 1), breaks = 0.85 + ((0:15) / 100)) +
   labs(x = "履歴長［ビット］", y = "予測ヒット率")
 plot(p)
 # ggplotly(p)
@@ -229,6 +230,7 @@ p <- data %>%
   theme_bw() +
   geom_point() +
   geom_line() +
+  scale_y_continuous(limits = c(0, NA)) +
   labs(x = "履歴長［ビット］", y = "MPKI")
 plot(p)
 # ggplotly(p)

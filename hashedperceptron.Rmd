@@ -15,7 +15,10 @@ https://github.com/ChampSim/ChampSim/blob/master/branch/hashed_perceptron/hashed
 ## Setup
 
 ```{r}
-data <- read_tsv("./hashedperceptron.tsv")
+data <- read_tsv("./hashedperceptron.tsv") %>%
+  group_by(speed, weightBit, tableCount, logTableSize) %>%
+  filter(n() == 221) %>%
+  ungroup()
 ```
 
 
@@ -353,7 +356,6 @@ plot(p)
 # ggplotly(p)
 
 p <- data %>%
-  # filter(speed == 18) %>%
   group_by(speed, weightBit, tableCount, logTableSize) %>%
   summarise(mpki = mean(MISPRED_PER_1K_INST)) %>%
   mutate(ram_capacity = weightBit * tableCount * 2**logTableSize) %>%
@@ -371,6 +373,7 @@ p <- data %>%
   # geom_line() +
   # geom_jitter(height = 0) +
   scale_color_gradient(low = "#a1024a", high = "#7ee787") +
+  scale_y_continuous(limits = c(0, NA)) +
   labs(x = "log2（RAM容量）", y = "MPKI")
 plot(p)
 # ggplotly(p)

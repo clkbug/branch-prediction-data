@@ -1,0 +1,39 @@
+---
+title: "Perceptron分岐予測器"
+---
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+ChampSim https://github.com/ChampSim/ChampSim に Perceptron の実装が含まれている。
+https://github.com/ChampSim/ChampSim/blob/master/branch/perceptron/perceptron.cc
+
+これをBPCKに移植した。
+
+## Setup
+
+```{r}
+data <- read_tsv("./perceptron.tsv")
+data$ram_capacity <- data %>% with(historyLength * numPerceptron * weightBit / 8)
+```
+
+## 資源量と性能
+
+```{r}
+data %>%
+  group_by(historyLength, weightBit, numPerceptron, ram_capacity) %>%
+  summarise(mpki = mean(NUM_MISPREDICTIONS/NUM_INSTRUCTIONS * 1000), hit = 1-mean(NUM_MISPREDICTIONS/NUM_BR)) %>%
+  ggplot(
+    mapping = aes(
+      x = log2(ram_capacity),
+      y = hit,
+    )
+  ) +
+  theme_bw() +
+  geom_point() +
+  scale_y_continuous(limits = c(0.85, 1), breaks = (85 + 0:15) / 100) +
+  labs(x = "log2(RAM capacity)", y = "分岐予測ヒット率")
+```
+

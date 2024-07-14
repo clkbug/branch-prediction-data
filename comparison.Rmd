@@ -1,0 +1,81 @@
+---
+title: "比較"
+---
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+## Setup
+
+```{r}
+data_gshare <- read_tsv("gshare.tsv") %>%
+  group_by(historyLength, logPhtSize) %>%
+  summarise(
+    mpki = mean(NUM_MISPREDICTIONS / NUM_INSTRUCTIONS * 1000),
+    hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR),
+    ram_capacity = (2 ** logPhtSize) * 2 / 8
+  ) %>%
+  ungroup() %>%
+  select(mpki, hit, ram_capacity) %>%
+  mutate(method = "gshare")
+data_perceptron <- read_tsv("perceptron.tsv") %>%
+  group_by(historyLength, numPerceptron, weightBit) %>%
+  summarise(
+    mpki = mean(NUM_MISPREDICTIONS / NUM_INSTRUCTIONS * 1000),
+    hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR),
+    ram_capacity = historyLength * numPerceptron * weightBit / 8
+  ) %>%
+  ungroup() %>%
+  select(mpki, hit, ram_capacity) %>%
+  mutate(method = "perceptron")
+data_hashedperceptron <- read_tsv("hashedperceptron.tsv") %>%
+  filter(speed == 2) %>%
+  group_by(speed, weightBit, tableCount, logTableSize) %>%
+  filter(n() == 221) %>%
+  summarise(
+    mpki = mean(NUM_MISPREDICTIONS / NUM_INSTRUCTIONS * 1000),
+    hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR),
+    ram_capacity = weightBit * tableCount * (2**logTableSize) / 8
+  ) %>%
+  ungroup() %>%
+  select(mpki, hit, ram_capacity) %>%
+  mutate(method = "hashedperceptron")
+data <- union_all(data_gshare, data_perceptron) %>% union_all(data_hashedperceptron) %>% mutate(method = as_factor(method))
+```
+
+## 比較
+
+```{r}
+data %>%
+  ggplot(
+    mapping = aes(
+      x = log2(ram_capacity),
+      y = hit * 100,
+      color = method,
+      shape = method,
+    )
+  ) +
+  theme_bw() +
+  geom_point() +
+  scale_x_continuous(minor_breaks = 0:25) +
+  scale_y_continuous(limits = c(84, 100), breaks = 80:100) +
+  labs(x = "log2(ram_capacity [B])", y = "分岐予測ヒット率［％］")
+data %>%
+  ggplot(
+    mapping = aes(
+      x = log2(ram_capacity),
+      y = mpki,
+      color = method,
+      shape = method,
+    )
+  ) +
+  theme_bw() +
+  geom_point() +
+  scale_x_continuous(minor_breaks = 0:25) +
+  scale_y_continuous(limits = c(0, NA)) +
+  labs(x = "log2(ram_capacity [B])", y = "MPKI")
+```
+
+
