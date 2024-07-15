@@ -14,13 +14,10 @@ title: "データの概要"
 ```{r}
 library(tidyverse)
 # library(plotly)
-data <- read_tsv("gshare.tsv") %>%
+data <- read_tsv("statict.tsv") %>%
   mutate(
     trace = trace %>% as_factor(),
     trace_category = trace_category %>% as_factor()
-  ) %>%
-  filter(
-    historyLength == 10 & logPhtSize == 10
   )
 ```
 
@@ -70,7 +67,10 @@ data %>% with(NUM_BR == NUM_UNCOND_BR + NUM_CONDITIONAL_BR) %>% summary
 箱ひげ図とバイオリン図を示す。
 
 ```{r}
+data_all <- data %>% mutate(trace_category = "all")
 p <- data %>%
+  union_all(data_all) %>%
+  mutate(trace_category = trace_category %>% as_factor()) %>%
   ggplot(
     mapping = aes(
       x = trace_category,
@@ -81,11 +81,13 @@ p <- data %>%
   # geom_boxplot() +
   geom_violin() +
   geom_jitter(height = 0) +
-  scale_y_continuous(limits = c(0, NA))
+  scale_y_continuous(limits = c(0, NA), breaks = 0:10 / 10)
 plot(p)
 # ggplotly(p)
 
 p <- data %>%
+  union_all(data_all) %>%
+  mutate(trace_category = trace_category %>% as_factor()) %>%
   ggplot(
     mapping = aes(
       x = trace_category,
@@ -95,12 +97,43 @@ p <- data %>%
   theme_bw() +
   geom_boxplot() +
   geom_jitter(height = 0) +
-  scale_y_continuous(limits = c(0, NA))
+  scale_y_continuous(limits = c(0, NA), breaks = 0:10 / 10)
 plot(p)
 # ggplotly(p)
 ```
 
 LONGとSHORTで傾向の違いがあって、SHORTのほうが条件分岐の割合が高い。
 中央値で見るとSHORTはMOBILE 84%, SERVER 70%であるのに対して、LONGは94%、91%。
+
+全部合算してみると、SHORT SERVERのトレース数が多いのでそれに引っ張られ、90%以上は条件分岐。
+
+## 動的な話
+
+すべての分岐をTAKENと予測する予測器の結果を用いて動的な様子を詳しく見てみる。
+
+### TAKENの割合
+
+```{r}
+data_all <- data %>% mutate(trace_category = "all")
+p <- data %>%
+  union_all(data_all) %>%
+  mutate(trace_category = trace_category %>% as_factor()) %>%
+  ggplot(
+    mapping = aes(
+      x = trace_category,
+      y = NUM_MISPREDICTIONS / NUM_BR,
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  geom_jitter(height = 0) +
+  scale_y_continuous(limits = c(0, 1))
+plot(p)
+
+```
+
+分岐予測ミスの割合というのはつまりNOT TAKENの割合。
+無条件分岐は常にTAKENで、ループによる分岐というのもほぼTAKENだろうと思うとTAKENの割合が多くなりそうに思われた（＝上のグラフでは下に張り付く）けれども、実際にはそうではないらしい。
+無条件分岐は結局絶対数が1割程度なので影響はあまりないにしろ、全体としてもTAKEN/NOT TAKENの割合は拮抗していて、ワークロードによっては偏りも大きい。
 
 
