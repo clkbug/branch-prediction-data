@@ -12,5 +12,7 @@ navbar:
       href: hashedperceptron.html
     - text: "Gshare+TargetHistory"
       href: gshareTh.html
+    - text: "HashedPerceptron+TargetHistory"
+      href: hashedperceptronTh.html
     - text: "比較"
       href: comparison.html

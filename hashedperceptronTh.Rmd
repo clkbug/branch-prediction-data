@@ -1,0 +1,124 @@
+---
+title: "Hashed Perceptron分岐予測器 + TargetHistory"
+---
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+```{r}
+data <- read_tsv("./hashedperceptron.tsv") %>%
+  filter(speed == 2 &
+           weightBit == 8 & tableCount == 16 & logTableSize == 16) %>%
+  group_by(speed, weightBit, tableCount, logTableSize) %>%
+  filter(n() == 221) %>%
+  ungroup() %>%
+  mutate(
+    ghr = "direction",
+    targetHistoryShift = NA,
+    targetHistoryPcShift = NA,
+    targetHistoryTargetShift = NA
+  ) %>%
+  union_all(read_tsv("hashedperceptronTh.tsv") %>%
+              mutate(ghr = "target history")) %>%
+  mutate(
+    ghr = ghr %>% as_factor,
+    trace = trace %>% as_factor(),
+    trace_category = trace_category %>% as_factor()
+  )
+```
+
+## 履歴の扱い方
+
+```{r}
+data %>%
+  filter(ghr == "target history") %>%
+  ggplot(mapping = aes(
+    x = interaction(
+      targetHistoryShift,
+      targetHistoryPcShift,
+      targetHistoryTargetShift
+    ),
+    y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+  )) +
+  theme_bw() +
+  theme(axis.text.x  = element_text(angle = 90),
+        legend.position = "none") +
+  geom_boxplot()
+```
+
+targetHistoryShift = 2が良さそうなのでこれに絞る。
+
+```{r}
+p <- data %>%
+  filter(ghr == "target history" & targetHistoryShift == 2) %>%
+  ggplot(mapping = aes(
+    x = interaction(
+      targetHistoryShift,
+      targetHistoryPcShift,
+      targetHistoryTargetShift
+    ),
+    y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+  )) +
+  theme_bw() +
+  theme(axis.text.x  = element_text(angle = 90),
+        legend.position = "none") +
+  geom_boxplot()
+plot(p)
+```
+
+(2, 2, 3)はあまり成績が良くないっぽい。
+
+
+```{r}
+p <- data %>%
+  filter(ghr == "target history" & targetHistoryShift == 2 & (targetHistoryTargetShift == 64 | (targetHistoryPcShift == targetHistoryTargetShift))) %>%
+  ggplot(mapping = aes(
+    x = interaction(
+      targetHistoryShift,
+      targetHistoryPcShift,
+      targetHistoryTargetShift
+    ),
+    y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+  )) +
+  theme_bw() +
+  theme(axis.text.x  = element_text(angle = 90),
+        legend.position = "none") +
+  geom_boxplot()
+plot(p)
+```
+もう少し絞って、directionを追加。
+
+
+```{r}
+p <- data %>%
+  filter(ghr != "target history" |
+           (targetHistoryShift == 2 &
+              ((targetHistoryTargetShift == 64 &
+                  targetHistoryPcShift == 0) |
+                 (targetHistoryPcShift == targetHistoryTargetShift)
+              ))) %>%
+  ggplot(mapping = aes(
+    x = interaction(
+      targetHistoryShift,
+      targetHistoryPcShift,
+      targetHistoryTargetShift
+    ),
+    y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+    color = ghr,
+  )) +
+  theme_bw() +
+  theme(axis.text.x  = element_text(angle = 90),
+        legend.position = "none") +
+  geom_boxplot()
+plot(p)
+```
+
+ナイーブにやるとやっぱり性能が出ないらしい。
+
+
+
+
