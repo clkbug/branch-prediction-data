@@ -137,3 +137,72 @@ plot(p)
 無条件分岐は結局絶対数が1割程度なので影響はあまりないにしろ、全体としてもTAKEN/NOT TAKENの割合は拮抗していて、ワークロードによっては偏りも大きい。
 
 
+## トレースメタ情報について
+
+トレースファイルの先頭にあるメタ情報について簡単に調べる。
+
+```{r}
+meta <- read_tsv("./extracted_metainfo.tsv")
+```
+
+### あまり重要でなさそうな列
+
+ここらへんは一応確認のために。
+
+```{r}
+meta$bt9_minor_version %>% summary
+meta$md5_checksum %>% summary
+meta$conversion_date %>% summary
+meta$original_stf_input_file %>% summary
+```
+
+
+
+### 命令の種類
+
+```{r}
+meta %>%
+  select(
+    trace,
+    trace_device,
+    trace_category,
+    A32_instruction_count,
+    A64_instruction_count,
+    T32_instruction_count,
+    unidentified_instruction_count
+  ) %>%
+  pivot_longer(cols = ends_with("_instruction_count"), names_to = "inst") %>%
+  mutate(
+    inst = inst %>% str_replace("_instruction_count", "") %>% as_factor(),
+    trace = trace %>% as_factor,
+    trace_category = trace_category %>% as_factor,
+    trace_device = trace_device %>% as_factor
+  ) %>%
+  group_by(trace) %>%
+  mutate(ratio = value / sum(value)) %>%
+  ungroup() %>%
+  group_by(trace_category, inst) %>%
+  summarise(ratio = mean(ratio)) %>%
+  ungroup() %>%
+  ggplot(mapping = aes(
+    x = trace_category,
+    y = ratio,
+    color = inst,
+    fill = inst,
+  )) +
+  theme_bw() +
+  geom_bar(stat = "identity")
+```
+
+MOBILE/SERVERでA32,T32/A64が入り混じっているらしい。
+MOBILEにA64が入るのはわかるが、SERVERにA32,T32が入るらしい？
+
+```{r}
+meta %>% filter(A64_instruction_count > 0 &
+                  (A32_instruction_count > 0 | T32_instruction_count > 0)) %>% nrow()
+```
+
+当然だけどA64とA32,T32がともに入っているトレースはない。
+
+
+
