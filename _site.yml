@@ -14,5 +14,11 @@ navbar:
       href: gshareTh.html
     - text: "HashedPerceptron+TargetHistory"
       href: hashedperceptronTh.html
+    - text: "YAGS"
+      href: yags.html
     - text: "比較"
       href: comparison.html
+    - text: "偏りについて"
+      href: bias.html
+    - text: "偏りについて（２）"
+      href: bias2.html

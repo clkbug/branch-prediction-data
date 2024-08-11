@@ -1,0 +1,175 @@
+---
+title: "偏りについて（２）"
+---
+
+命令長が可変であれば、命令アドレスの下位ビットの分布に偏りが生じうる。
+その影響を見る。
+
+
+```{r}
+library(tidyverse)
+library(magrittr)
+# library(arrow)
+library(duckdb)
+library(dbplyr)
+```
+
+```{r}
+con <- DBI::dbConnect(duckdb())
+dbGetQuery(con, "CREATE TABLE pc_ghr AS SELECT * FROM \"pc_ghr.parquet\"")
+```
+
+
+```{r}
+filenames <- tbl(con, "pc_ghr") %>%
+  group_by(filename) %>%
+  summarise(n = n()) %>%
+  collect() %$%
+  filename
+```
+
+```{r}
+for (f in filenames) {
+  f2 <- f %>% str_replace("data2/", "")
+  df <- tbl(con, "pc_ghr") %>%
+    filter(filename == f & 0 < count) %>%
+    collect()
+  p <- df %>%
+    mutate(ratio = count / sum(count)) %>%
+    filter(0.001 < ratio) %>%
+    ggplot(
+      mapping = aes(
+        x = pc,
+        y = ghr,
+        color = ratio,
+        # alpha = 0.1
+      )
+    ) +
+    theme_bw() +
+    geom_point() +
+    scale_x_continuous(limits = c(0, 1024), breaks = 0:100 * 64, minor_breaks = 0:400 * 16) +
+    scale_y_continuous(limits = c(0, 1024), breaks = 0:100 * 64, minor_breaks = 0:400 * 16) +
+    labs(title = f2)
+  plot(p)
+  ggsave(paste0("bias_plot/pc_ghr_", f2, ".png"))
+}
+```
+
+
+
+```{r}
+for (f in filenames) {
+  f2 <- f %>% str_replace("data2/", "")
+  df <- tbl(con, "pc_ghr") %>%
+    filter(filename == f & 0 < count) %>%
+    mutate(ratio = count / sum(count)) %>%
+    filter(0.001 < ratio) %>%
+    collect()
+  p <- df %>%
+    ggplot(mapping = aes(
+      x = pc,
+      y = index,
+      color = ratio
+    )) +
+    theme_bw() +
+    geom_point() +
+    scale_x_continuous(
+      limits = c(0, 1024),
+      breaks = 0:100 * 64,
+      minor_breaks = 0:400 * 16
+    ) +
+    scale_y_continuous(
+      limits = c(0, 1024),
+      breaks = 0:100 * 64,
+      minor_breaks = 0:400 * 16
+    ) +
+    labs(title = f2)
+  plot(p)
+  ggsave(paste0("bias_plot/pc_idx_", f2, ".png"))
+}
+```
+
+
+```{r}
+for (f in filenames) {
+  f2 <- f %>% str_replace("data2/", "")
+  df <- tbl(con, "pc_ghr") %>%
+    filter(filename == f & 0 < count) %>%
+    mutate(ratio = count / sum(count)) %>%
+    filter(0.01 < ratio) %>%
+    collect()
+  p <- df %>%
+    ggplot(mapping = aes(
+      x = index %>% as_factor(),
+      y = pc %>% as_factor,
+      color = ratio
+    )) +
+    theme_bw() +
+    geom_point() +
+    # scale_x_continuous(
+    #   limits = c(0, 1024),
+    #   breaks = 0:100 * 64,
+    #   minor_breaks = 0:400 * 16
+    # ) +
+    # scale_y_continuous(
+    #   limits = c(0, 1024),
+    #   breaks = 0:100 * 64,
+    #   minor_breaks = 0:400 * 16
+    # ) +
+    labs(title = f2)
+  # plot(p)
+  ggsave(paste0("bias_plot/pc_idx2_", f2, ".png"))
+}
+```
+
+
+
+
+
+```{r}
+for (f in filenames) {
+  f2 <- f %>% str_replace("data2/", "")
+  target <- paste0("bias_plot/pht_", f2, ".png")
+  # if (file.exists(target)) {
+  #   next
+  # }
+  df <- tbl(con, "pc_ghr") %>%
+    filter(filename == f) %>%
+    mutate(ratio = count / sum(count)) %>%
+    collect()
+  p <- df %>%
+    mutate(c = (floor(index / 64) %% 8) %>% as_factor) %>%
+    ggplot(mapping = aes(
+      x = index %% 64,
+      y = ratio,
+      # y = pc %>% as_factor,
+      fill = c
+    )) +
+    theme_bw() +
+    geom_bar(stat = "identity") +
+    labs(title = f2) +
+    scale_x_continuous(limits = c(-1, 65), breaks = 0:100 * 4, minor_breaks = 0:100 * 1)
+  # plot(p)
+  # break
+  ggsave(target, plot = p)
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,57 @@
+---
+title: "YAGS分岐予測器"
+---
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+
+## Setup
+
+```{r}
+data <- read_tsv("./yags.tsv")
+data <- data %>%
+  group_by(historyLength, logPhtSize, wayCount, setCount, tagLength) %>%
+  filter(n() == 221) %>%
+  ungroup()
+```
+
+## 資源量多めの設定で見る
+
+```{r}
+data %>%
+  filter(historyLength == 20 & logPhtSize == 20 & wayCount == 4 & setCount == 2**17 & tagLength == 8) %>%
+  ggplot(
+    mapping = aes(
+      x = trace_category,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot() +
+  geom_jitter(height = 0)
+
+```
+
+悪くはないけど、そんなにいいかと言われると微妙かも？
+
+## ウェイ数の影響
+
+
+```{r}
+data %>%
+  filter(historyLength == 20 & logPhtSize == 20 & (wayCount * setCount == 4 * 2**17)  & tagLength == 8) %>%
+  # group_by(wayCount, trace_category) %>%
+  # summarise(hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR)) %>%
+  ggplot(
+    mapping = aes(
+      x = trace_category,
+      y = 1 - NUM_MISPREDICTIONS / NUM_BR,
+      color = wayCount %>% as_factor
+    )
+  ) +
+  theme_bw() +
+  geom_boxplot()
+```

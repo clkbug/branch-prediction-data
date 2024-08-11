@@ -37,12 +37,23 @@ data_hashedperceptron <- read_tsv("hashedperceptron.tsv") %>%
   summarise(
     mpki = mean(NUM_MISPREDICTIONS / NUM_INSTRUCTIONS * 1000),
     hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR),
-    ram_capacity = weightBit * tableCount * (2**logTableSize) / 8
+    ram_capacity = weightBit * tableCount * (2 ** logTableSize) / 8
   ) %>%
   ungroup() %>%
   select(mpki, hit, ram_capacity) %>%
   mutate(method = "hashedperceptron")
-data <- union_all(data_gshare, data_perceptron) %>% union_all(data_hashedperceptron) %>% mutate(method = as_factor(method))
+data_yags <- read_tsv("yags.tsv") %>%
+  group_by(historyLength, logPhtSize, wayCount, setCount, tagLength) %>%
+  filter(n() == 221) %>%
+  summarise(
+    mpki = mean(NUM_MISPREDICTIONS / NUM_INSTRUCTIONS * 1000),
+    hit = 1 - mean(NUM_MISPREDICTIONS / NUM_BR),
+    ram_capacity = ((2 ** logPhtSize * 2)  + (wayCount * setCount * (tagLength + 2)) * 2) / 8
+  ) %>%
+  ungroup() %>%
+  select(mpki, hit, ram_capacity) %>%
+  mutate(method = "yags")
+data <- union_all(data_gshare, data_perceptron) %>% union_all(data_hashedperceptron) %>% union_all(data_yags) %>% mutate(method = as_factor(method))
 ```
 
 ## 比較
@@ -77,5 +88,19 @@ data %>%
   scale_y_continuous(limits = c(0, NA)) +
   labs(x = "log2(ram_capacity [B])", y = "MPKI")
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

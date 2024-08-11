@@ -1,0 +1,108 @@
+---
+title: "偏りについて"
+---
+
+命令長が可変であれば、命令アドレスの下位ビットの分布に偏りが生じうる。
+その影響を見る。
+
+
+```{r}
+library(tidyverse)
+library(magrittr)
+# library(arrow)
+library(duckdb)
+library(dbplyr)
+```
+```{r}
+con <- DBI::dbConnect(duckdb())
+dbGetQuery(con, "CREATE TABLE pc AS SELECT * FROM \"pc.parquet\"")
+dbGetQuery(con, "CREATE TABLE pht AS SELECT * FROM \"pht.parquet\"")
+```
+
+
+```{r}
+tbl(con, "pc") |>
+  collect() |>
+  ggplot(mapping = aes(x = index, y = value, fill = trace_category, )) +
+  theme_bw() +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ trace_category)
+```
+
+
+```{r}
+tbl(con, "pht") %>%
+  filter(len == "SHORT") %>%
+  mutate(index32 = index %% 32) %>%
+  group_by(index32, trace_category) %>%
+  summarise(value = sum(value)) %>%
+  collect() %>%
+  ggplot(mapping = aes(x = index32, y = value, fill = trace_category, )) +
+  theme_bw() +
+  geom_bar(stat = "identity") +
+  facet_wrap( ~ trace_category, scales = "free")
+tbl(con, "pht") %>%
+  filter(len == "LONG") %>%
+  mutate(index32 = index %% 32) %>%
+  group_by(index32, trace_category) %>%
+  summarise(value = sum(value)) %>%
+  collect() %>%
+  ggplot(mapping = aes(x = index32, y = value, fill = trace_category, )) +
+  theme_bw() +
+  geom_bar(stat = "identity") +
+  facet_wrap( ~ trace_category, scales = "free")
+```
+
+```{r}
+pht_filenames <- tbl(con, "pht") %>%
+  group_by(filename) %>%
+  summarise(n = n()) %>%
+  collect() %$%
+  filename
+pc_filenames <- tbl(con, "pc") %>%
+  group_by(filename) %>%
+  summarise(n = n()) %>%
+  collect() %$%
+  filename
+```
+
+
+```{r}
+for (pc_filename in pc_filenames) {
+  p <- tbl(con, "pc") |>
+    filter(filename == pc_filename) |>
+    mutate(ratio = value / sum(value)) |>
+    collect() |>
+    ggplot(mapping = aes(x = index, y = ratio * 100)) +
+    theme_bw() +
+    geom_bar(stat = "identity") +
+    labs(title = pc_filename, x = "PC %% 64", y = "割合［％］") +
+    scale_x_continuous(breaks = 0:100 * 4, minor_breaks = 0:200 * 1)
+  plot(p)
+  ggsave(paste0("bias_plot/pc_", pc_filename, ".png"))
+}
+```
+
+
+
+```{r}
+for (pht_filename in pht_filenames) {
+  p <- tbl(con, "pht") %>%
+    filter(filename == pht_filename) %>%
+    mutate(index64 = index %% 64) %>%
+    group_by(index64) %>%
+    summarise(value = sum(value)) %>%
+    ungroup() %>%
+    mutate(ratio = value / sum(value)) %>%
+    collect() %>%
+    ggplot(mapping = aes(x = index64, y = ratio * 100)) +
+    theme_bw() +
+    geom_bar(stat = "identity") +
+    labs(title = pht_filename, x = "pht index %% 64", y = "割合［％］") +
+    scale_x_continuous(breaks = 0:200 * 4, minor_breaks = 0:200 * 2)
+  plot(p)
+  ggsave(paste0("bias_plot/pht_", pht_filename, ".png"))
+}
+```
+
+PCとPHTインデックスの関係が見えないとなんとも言えない。
